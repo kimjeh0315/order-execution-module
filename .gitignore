@@ -1,8 +1,10 @@
 build/
 build_asan/
 build_tsan/
+out/
 .cache/
 *.exe
 *.o
 *.obj
+*.obj.d
 .DS_Store
