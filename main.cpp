@@ -146,6 +146,54 @@ int main() {
     }
     std::this_thread::sleep_for(ms(50));
 
+    // =========================================================================
+    // TC6: CEX/DEX Arbitrage — Simultaneous Dual-Leg Dispatch
+    //
+    //   Price discrepancy:
+    //     DEX Hyperliquid  BTC-PERP = 70,000 USDT  (cheaper  → BUY  here)
+    //     CEX Binance      BTC-PERP = 70,050 USDT  (expensive → SELL here)
+    //     Gross spread: 50 USDT × 1 BTC = 50 USDT
+    //
+    //   Both legs are FUTURES (short selling allowed on both sides).
+    //   Fired simultaneously in two threads — SpinLock serialises margin
+    //   deduction; dispatch latency must stay in single-digit microseconds.
+    // =========================================================================
+    {
+        static constexpr char HDR[] =
+            "\n[TC6] CEX/DEX Arbitrage — Simultaneous Dual-Leg Dispatch\n"
+            "      DEX(Hyperliquid) BUY  @ 70,000 | CEX(Binance) SELL @ 70,050\n"
+            "      Spread: 50 USDT/BTC  |  Instrument: BTC-PERP  |  Leverage: 10x\n";
+        fwrite(HDR, 1, sizeof(HDR) - 1, stdout);
+        fflush(stdout);
+
+        auto tc6 = DummyOrderGenerator::tc6_cex_dex_arb(ts);
+
+        // Fire both legs from separate threads at the same instant.
+        // The SpinLock inside receiveOrder serialises margin deduction atomically,
+        // so cash cannot go negative even if both threads enter simultaneously.
+        auto t0 = Clock::now();
+
+        std::thread leg_dex([&](){ executor.receiveOrder(tc6[0]); }); // DEX BUY  (long)
+        std::thread leg_cex([&](){ executor.receiveOrder(tc6[1]); }); // CEX SELL (short)
+
+        leg_dex.join();
+        leg_cex.join();
+
+        auto t1 = Clock::now();
+        auto wall_us = std::chrono::duration_cast<us>(t1 - t0).count();
+
+        char buf[256];
+        int n = snprintf(buf, sizeof(buf),
+            "[TC6-Timing] Both legs submitted in %lldus total.\n"
+            "[TC6-Info]   CEX confirmation: ~50ms  |  DEX on-chain: ~1050ms  (both async)\n"
+            "[TC6-Info]   Margin locked: ~7,000 USDT x2 = ~14,000 USDT  (leverage=10)\n",
+            (long long)wall_us);
+        fwrite(buf, 1, n, stdout);
+        fflush(stdout);
+    }
+    // Wait long enough to see DEX on-chain confirmation (~1050ms).
+    std::this_thread::sleep_for(ms(1200));
+
     fwrite("\n========== [All Test Cases Completed] ==========\n", 1, 51, stdout);
     fflush(stdout);
 

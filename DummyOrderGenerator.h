@@ -85,6 +85,36 @@ public:
     static OrderRequest tc5_stale_signal(int64_t now) {
         return make_order(501, 0, 0, 1, "SOLUSDT", 0, 200, 3, now - 2000, /*max_age=*/500);
     }
+
+    // -------------------------------------------------------------------------
+    // TC6: CEX/DEX Arbitrage — simultaneous dual-leg dispatch.
+    //
+    //   Price discrepancy detected:
+    //     DEX (Hyperliquid, exchange_id=1): BTC-PERP @ 70,000 USDT  ← cheaper
+    //     CEX (Binance,     exchange_id=0): BTC-PERP @ 70,050 USDT  ← expensive
+    //     Spread: 50 USDT/BTC × 1 BTC = 50 USDT gross profit
+    //
+    //   Action: fire both legs simultaneously in separate threads.
+    //     Leg A (DEX): BUY  1 BTC FUTURES on Hyperliquid  @ 70,000  (go long)
+    //     Leg B (CEX): SELL 1 BTC FUTURES on Binance      @ 70,050  (go short)
+    //
+    //   Instrument: FUTURES (inst_type=1), leverage=10
+    //   Margin per leg: notional / leverage = 70,000 / 10 = 7,000 USDT each
+    //   Total margin locked: ~14,005 USDT
+    //
+    //   Expected:
+    //     - SpinLock serialises both margin deductions atomically — no race.
+    //     - Both legs dispatched within single-digit microseconds (non-blocking).
+    //     - CEX confirmation: ~50ms (REST API).
+    //     - DEX confirmation: ~1,050ms (EIP-712 sign + block confirmation).
+    //     - Alpha decay risk: near-zero because dispatch latency < tick interval.
+    // -------------------------------------------------------------------------
+    static std::array<OrderRequest, 2> tc6_cex_dex_arb(int64_t now) {
+        return {
+            make_order(601, 1, 1, 10, "BTCUSDT", 0, 70000, 1, now),   // DEX: BUY  (long)
+            make_order(602, 0, 1, 10, "BTCUSDT", 1, 70050, 1, now),   // CEX: SELL (short)
+        };
+    }
 };
 
 } // namespace oem

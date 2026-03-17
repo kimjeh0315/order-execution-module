@@ -41,16 +41,16 @@ find_package(Threads REQUIRED)
 # ---------------------------------------------------------------------------
 # Main test binary
 # ---------------------------------------------------------------------------
-add_executable(order_executor_test
+add_executable(oe_runner
     main.cpp
     OrderExecutor.cpp
 )
 
-target_include_directories(order_executor_test PRIVATE
+target_include_directories(oe_runner PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(order_executor_test PRIVATE
+target_link_libraries(oe_runner PRIVATE
     Threads::Threads
 )
 
@@ -62,8 +62,8 @@ if(ENABLE_ASAN)
     if(MSVC)
         message(WARNING "ENABLE_ASAN is not supported on MSVC; ignoring.")
     else()
-        target_compile_options(order_executor_test PRIVATE -fsanitize=address -g -O1)
-        target_link_options(order_executor_test PRIVATE -fsanitize=address)
+        target_compile_options(oe_runner PRIVATE -fsanitize=address -g -O1)
+        target_link_options(oe_runner PRIVATE -fsanitize=address)
     endif()
 endif()
 
@@ -75,8 +75,8 @@ if(ENABLE_TSAN)
     if(MSVC)
         message(WARNING "ENABLE_TSAN is not supported on MSVC; ignoring.")
     else()
-        target_compile_options(order_executor_test PRIVATE -fsanitize=thread -g -O1)
-        target_link_options(order_executor_test PRIVATE -fsanitize=thread)
+        target_compile_options(oe_runner PRIVATE -fsanitize=thread -g -O1)
+        target_link_options(oe_runner PRIVATE -fsanitize=thread)
     endif()
 endif()
 
