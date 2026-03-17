@@ -1,6 +1,0 @@
-# ninja log v7
-8	712	7954366378626786	CMakeFiles/oe_runner.dir/main.cpp.obj	59e1d2350ea890cb
-21	985	7954366378759590	CMakeFiles/oe_runner.dir/OrderExecutor.cpp.obj	ff705ae623b7f298
-985	1222	7954366388397841	oe_runner.exe	ac69349bf27a3f49
-8	695	7954369130187152	CMakeFiles/oe_runner.dir/main.cpp.obj	59e1d2350ea890cb
-696	958	7954369137069585	oe_runner.exe	ac69349bf27a3f49
